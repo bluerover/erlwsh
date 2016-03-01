@@ -6,7 +6,8 @@
     erlwsh_app,
     erlwsh_sup,
     erlwsh_web,
-    erlwsh_deps
+    erlwsh_deps,
+    eshell
   ]},
   {registered, []},
   {mod, {erlwsh_app, []}},
