@@ -8,6 +8,7 @@
 -vsn('0.01').
 -export([start/1, stop/0, loop/2]).
 
+-define(CLIENT_TIMEOUT,30000).
 %% External API
 
 start(Options) ->
@@ -27,13 +28,12 @@ loop(Req, DocRoot) ->
             case Path of
                  "shell" ->
                     Socket=Req:get(socket),
-                    %%Amit added
-                    erlang:send_after(self(),1000,timeout),
                     Addr=Req:get(peer),
                     Port=integer_to_list(get_port(Socket)),
                     Name=list_to_atom(Addr ++ ":" ++ Port),
                     %Register process as ip:port name
                     register(Name,self()),
+                    Timeout = erlang:send_after(?CLIENT_TIMEOUT,self(),{client,exit}),
                     N=1,
                     NameField=get_name_field(Name),
                     Response = Req :ok ( { "text/html; charset=utf-8" ,
@@ -67,7 +67,7 @@ loop(Req, DocRoot) ->
                                             </script></head>"
                                             "<body> Erlang web shell 0.01 (dennis:killme2008@gmail.com)</br>" ++
                                             get_form(NameField,N)) ,
-                    loop(NameField,Response,erl_eval:new_bindings(), N);
+                    loop(NameField,Response,erl_eval:new_bindings(), N,Timeout);
 
                 _ ->
                     Req:serve_file(Path, DocRoot)
@@ -108,10 +108,10 @@ get_port(Socket) ->
     end.
 
 %% Internal API
-loop(NameField, Response,Binding ,N ) ->
+loop(NameField, Response,Binding ,N ,Timeout) ->
+    erlang:cancel_timer(Timeout),
+    NewTimeout = erlang:send_after(?CLIENT_TIMEOUT,self(),{client,exit}),
     receive
-        {timeout}->
-          ok;
         {client,exit} ->
                     Response:write_chunk("<script type='text/javascript' language='javascript'>
                                           alert('Erlang web shell exit');
@@ -124,14 +124,14 @@ loop(NameField, Response,Binding ,N ) ->
              try eshell:eval(Str,Binding) of
                 {value,Value,NewBinding} ->
                        Response:write_chunk(io_lib:format("~p</br>",[Value]) ++ get_form(NameField,N+1)),
-                   loop(NameField,Response,NewBinding,N+1)
+                   loop(NameField,Response,NewBinding,N+1,NewTimeout)
              catch
                    _:Why->
                        Response:write_chunk(io_lib:format("~p</br>",[Why]) ++ get_form(NameField,N+1)),
-                   loop(NameField,Response,Binding,N+1)
+                   loop(NameField,Response,Binding,N+1,NewTimeout)
             end;
         _ ->
-           loop(NameField,Response,Binding,N)
+           loop(NameField,Response,Binding,N,NewTimeout)
     end.
 
 get_option(Option, Options) ->
