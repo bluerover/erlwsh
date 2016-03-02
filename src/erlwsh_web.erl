@@ -27,6 +27,8 @@ loop(Req, DocRoot) ->
             case Path of
                  "shell" ->
                     Socket=Req:get(socket),
+                    %%Amit added
+                    erlang:send_after(self(),1000,timeout),
                     Addr=Req:get(peer),
                     Port=integer_to_list(get_port(Socket)),
                     Name=list_to_atom(Addr ++ ":" ++ Port),
@@ -108,6 +110,8 @@ get_port(Socket) ->
 %% Internal API
 loop(NameField, Response,Binding ,N ) ->
     receive
+        {timeout}->
+          ok;
         {client,exit} ->
                     Response:write_chunk("<script type='text/javascript' language='javascript'>
                                           alert('Erlang web shell exit');
