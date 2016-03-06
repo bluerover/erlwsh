@@ -84,6 +84,18 @@ loop(Req, DocRoot) ->
                                     Pid ! {post_msg,Str}
                    end,
                    Req:ok({"text/plain", "success"});
+                "execute" ->
+                    Params=Req:parse_post(),
+                    Str = string:strip(proplists:get_value("str",Params)),
+                    io:format("execute ~p", [Str])
+                    try eshell:eval(Str,erl_eval:new_bindings()) of
+                      {value,Value,_NewBinding} ->
+                        Req:respond({200,[{"Content-Type", "text/plain"}],io_lib:format("~p</br>",[Value])})
+                    catch
+                      _:Why->
+                        Req:respond({500, [{"Content-Type", "text/plain"}],
+                                     io_lib:format("~p</br>",[Why])})
+                    end;
                 _ ->
                     Req:not_found()
             end;
