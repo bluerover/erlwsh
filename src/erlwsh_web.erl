@@ -87,7 +87,6 @@ loop(Req, DocRoot) ->
                 "execute" ->
                     Params=Req:parse_post(),
                     Str = string:strip(proplists:get_value("str",Params)),
-                    io:format("execute ~p", [Str])
                     try eshell:eval(Str,erl_eval:new_bindings()) of
                       {value,Value,_NewBinding} ->
                         Req:respond({200,[{"Content-Type", "text/plain"}],io_lib:format("~p</br>",[Value])})
