@@ -89,7 +89,7 @@ loop(Req, DocRoot) ->
                     Str = string:strip(proplists:get_value("str",Params)),
                     try eshell:eval(Str,erl_eval:new_bindings()) of
                       {value,Value,_NewBinding} ->
-                        Req:respond({200,[{"Content-Type", "text/plain"}],io_lib:format("~p</br>",[jiffy:encode(Value)])})
+                        Req:respond({200,[{"Content-Type", "text/plain"}],jiffy:encode(Value)})
                     catch
                       _:Why->
                         Req:respond({500, [{"Content-Type", "text/plain"}],
